@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using PIDTuner;
 using Unity.Mathematics;
 using UnityEngine;
 
 
-public class PIDController
+public class PIDController : TuneableController
 {
     private float _proportionalGain;
     private float _integralGain;
@@ -48,11 +49,29 @@ public class PIDController
         float i = _integratlHistory * _integralGain;
         float d = _derrivativeGain * delta;
 
-        //TODO:Some better debug system than this nightmare, graphs ??? draw to inspector
+        //TODO:Some better debug system than this trash tier nightmare, graphs ??? draw to inspector
         Debug.Log($"proportional:{p:F3}    intergral:{i:F3}    derrivative:{d:F3}");
 
 
         float value = p + i + d;
         return math.clamp(value, _minValue, _maxValue);
+    }
+
+    public TuneableController DeepCopy()
+    {
+        return new PIDController(_proportionalGain, _integralGain, _derrivativeGain);
+    }
+
+    public void Reset()
+    {
+        _processLast = 0.0f;
+        _integratlHistory = 0.0f;
+    }
+
+    public void Mutate(MutationArguments mutation)
+    {
+        mutation.Mutate(ref _proportionalGain);
+        mutation.Mutate(ref _integralGain);
+        mutation.Mutate(ref _derrivativeGain);
     }
 }
