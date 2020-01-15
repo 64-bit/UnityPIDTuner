@@ -2,13 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 using Random = Unity.Mathematics.Random;
 
 namespace PIDTuner
 {
     public class GeneticTuner
     {
-        private List<GeneticInstance> _currentPopulation;
+        private List<GeneticInstance> _currentPopulation = new List<GeneticInstance>();
         public IReadOnlyList<GeneticInstance> CurrentPopulation => _currentPopulation.AsReadOnly();
 
         private readonly GenerationArguments _generationArguments;
@@ -29,12 +30,19 @@ namespace PIDTuner
 
             CurrentGeneration = 0;
 
-            InitPopulation(requirements);
+            InitPopulation(requirements, _generationArguments);
         }
 
-        private void InitPopulation(PIDTunerRequirements requirements)
+        private void InitPopulation(PIDTunerRequirements requirements, GenerationArguments generationArguments)
         {
+            //TODO:Create init mutator
+            var mutator = new RandomMutator();
 
+            while (_currentPopulation.Count < generationArguments.GenerationSize)
+            {
+                var newInstance = new GeneticInstance(requirements, mutator);
+                _currentPopulation.Add(newInstance);
+            }
         }
 
         public void AdvanceGeneration()//This assumes that the score has been updated externally from this process
@@ -58,6 +66,24 @@ namespace PIDTuner
                 var child = new GeneticInstance(parent, _mutator);
                 newGeneration.Add(child);
             }
+
+            _currentPopulation = newGeneration;
+
+            CurrentGeneration++;
+        }
+
+        public void PrintDebugScores()
+        {
+            var best10 = CurrentPopulation.OrderByDescending((x) => x.CurrentScore).Take(10);
+
+            Debug.Log($"Best 10 of generation {CurrentGeneration}");
+            var str = "";
+            foreach (var entry in best10)
+            {
+                str += $"{entry.CurrentScore}\n";
+            }
+
+            Debug.Log(str);
         }
 
         /// <summary>
@@ -67,13 +93,26 @@ namespace PIDTuner
         {
             public GeneticInstance()
             {
-                CurrentScore = -1.0f;
+                CurrentScore = 0.0f;
                 ControllerGeneticData = new List<TuneableController>();
+            }
+
+            public GeneticInstance(PIDTunerRequirements requirements, MutationArguments mutator)
+            {
+                CurrentScore = 0.0f;
+                ControllerGeneticData = new List<TuneableController>(requirements.Controllers.Count);
+
+                foreach (var controller in requirements.Controllers)
+                {
+                    var controllerCopy = controller.Controller.DeepCopy();
+                    controllerCopy.Mutate(mutator);
+                    ControllerGeneticData.Add(controllerCopy);
+                }
             }
 
             public GeneticInstance(GeneticInstance parent, MutationArguments mutator)
             {
-                CurrentScore = -1.0f;
+                CurrentScore = 0.0f;
                 ControllerGeneticData = new List<TuneableController>(parent.ControllerGeneticData.Count);
 
                 foreach (var controller in parent.ControllerGeneticData)

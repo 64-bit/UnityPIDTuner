@@ -7,13 +7,13 @@ using Unity.Mathematics;
 using UnityEngine;
 
 
-class PID_Test_Chaser : MonoBehaviour
+public class PID_Test_Chaser : MonoBehaviour
 {
-    public PID_Test_Target target;
+    public Transform Target;
 
     public float Thrust = 10.0f;
 
-    private PIDController3f _pid;
+    public PIDController3f PIDController;
 
     private Rigidbody _rigidbody;
 
@@ -23,15 +23,15 @@ class PID_Test_Chaser : MonoBehaviour
 
     void Awake()
     {
-        _pid = new PIDController3f(new float3(P), new float3(I), new float3(D));
+        PIDController = new PIDController3f(new float3(P), new float3(I), new float3(D));
         _rigidbody = GetComponent<Rigidbody>();
     }
 
     void FixedUpdate()
     {
 
-        _pid.TargetValue = target.transform.position;
-        var thrust = _pid.Update(transform.position, Time.fixedDeltaTime);
+        PIDController.TargetValue = Target.transform.position;
+        var thrust = PIDController.Update(transform.position, Time.fixedDeltaTime);
 
         _rigidbody.AddForce(thrust * Thrust);
     }

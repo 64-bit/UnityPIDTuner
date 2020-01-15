@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,13 @@ namespace Assets
     {
         public GameObject TestPrefab;
 
+        public int Generations = 10;
+        public int Population = 100;
+
+        private GeneticTuner _geneticTuner;
+
+        private float3 _testSize;
+
         void Start()
         {
             var tempInstance = Instantiate(TestPrefab);
@@ -22,20 +30,138 @@ namespace Assets
                 throw new InvalidOperationException("Could not find IPIDTunerTestInterface in prefab");
             }
 
+            Destroy(tempInstance);
+
             var requirements = tempInterface.GetTestRequirements();
             InitFromRequirements(requirements);
+            StartCoroutine(WholeProcess());
         }
 
         private void InitFromRequirements(PIDTunerRequirements requirments)
         {
             //We have the test requirements, now we must create and init the genetic tuner, and then run that for like, a bunch of generations
+            //TODO:HERE
+
+            _testSize = requirments.FreespaceNeeded * 1.5f;
+
+            _geneticTuner = new GeneticTuner(requirments, new MutationArguments(),new GeneticTuner.GenerationArguments()
+            {
+                GenerationSize = Population,
+                KeepTopCount = 10,
+                KeepExactParents = true
+            });
+        }
+
+        private IEnumerator WholeProcess()
+        {
+            yield return null;
+            while (_geneticTuner.CurrentGeneration < Generations)
+            {
+                yield return ProcessGeneration();
+                _geneticTuner.AdvanceGeneration();
+                yield return null;
+            }
+
+            //Print result
+        }
+
+        private IEnumerator ProcessGeneration()
+        {
+            int xSize = (int)Math.Sqrt(Population) + 1;
+
+            var finishedCount = new IntContainer();
+
+            var prefabInstances = new List<GameObject>();
+            var testInterfaces = new List<IPIDTunerTestInterface>();
+        
+            for (int i = 0; i < Population; i++)
+            {
+                int xPos = i % xSize;
+                int yPos = i / xSize;
+
+                float3 prefabPos = _testSize * new float3(xPos, 0.0f, yPos);
+
+                var prefabInstance = GameObject.Instantiate(TestPrefab, prefabPos, Quaternion.identity);
+                prefabInstances.Add(prefabInstance);
+                var testInterface = prefabInstance.GetComponentInChildren<IPIDTunerTestInterface>();
+                var requs = testInterface.GetTestRequirements();
+
+                var geneticIndividual = _geneticTuner.CurrentPopulation[i];
+
+                for (int j = 0; j < requs.Controllers.Count; j++)
+                {
+                    requs.Controllers[j].Controller.CopyFrom(geneticIndividual.ControllerGeneticData[j]);                 
+                }
+
+                var incrementer = new CounterIncrementer(finishedCount);
+                testInterface.ProvideOnFinished(incrementer.Trigger());
+                testInterface.OnStartTest();
+                testInterfaces.Add(testInterface);
+            }
+
+            float[] accumulatedError = new float[Population];
+
+            while (finishedCount.Value < Population)
+            {
+                //Accumualte error
+                for (int i = 0; i < Population; i++)
+                {
+                    accumulatedError[i] += testInterfaces[i].GetErrorForFrame();
+                }
+
+                yield return new WaitForFixedUpdate();
+            }
+
+            //Now everything is finished, apply scores to generation
+            for (int i = 0; i < Population; i++)
+            {
+                _geneticTuner.CurrentPopulation[i].CurrentScore = -accumulatedError[i];//Stupid hack to get score working right
+            }
+
+            _geneticTuner.PrintDebugScores();
+            DestroyList(prefabInstances);
+        }
+
+        private void DestroyList(List<GameObject> objects)
+        {
+            foreach (var obj in objects)
+            {
+                GameObject.Destroy(obj);
+            }
+        }
+
+        private class IntContainer //Caputure correctly in clouser for stupidness
+        {
+            public int Value;
+        }
+
+        private class CounterIncrementer
+        {
+            private bool _hasFired = false;
+            private IntContainer _intTarget;
+
+            public CounterIncrementer(IntContainer container)
+            {
+                _intTarget = container;
+            }
+
+            public Action Trigger()
+            {
+                return () =>
+                {
+                    if (_hasFired)
+                    {
+                        return;
+                    }
+
+                    _hasFired = true;
+                    _intTarget.Value += 1;
+                };
+            }
         }
     }
 
-    public class GeneticInstance
-    {
 
-    }
 
     public interface IPIDTunerTestInterface
     {
@@ -60,14 +186,14 @@ namespace Assets
     public class PIDTunerRequirements
     {
         //Controllers
-        public List<TuneableControllerMetadata> Controllers;
+        public readonly List<TuneableControllerMetadata> Controllers = new List<TuneableControllerMetadata>();
 
         public float3 FreespaceNeeded;
     }
 
     //How to deal with UI / Binding for different controllers ?
 
-    public abstract class TuneableControllerMetadata
+    public class TuneableControllerMetadata
     {
         public TuneableController Controller;
         public string Name;

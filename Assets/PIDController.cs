@@ -50,7 +50,7 @@ public class PIDController : TuneableController
         float d = _derrivativeGain * delta;
 
         //TODO:Some better debug system than this trash tier nightmare, graphs ??? draw to inspector
-        Debug.Log($"proportional:{p:F3}    intergral:{i:F3}    derrivative:{d:F3}");
+        //Debug.Log($"proportional:{p:F3}    intergral:{i:F3}    derrivative:{d:F3}");
 
 
         float value = p + i + d;
@@ -60,6 +60,20 @@ public class PIDController : TuneableController
     public TuneableController DeepCopy()
     {
         return new PIDController(_proportionalGain, _integralGain, _derrivativeGain);
+    }
+
+    public void CopyFrom(TuneableController other)
+    {
+        if (other is PIDController asPID)
+        {
+            _proportionalGain = asPID._proportionalGain;
+            _integralGain = asPID._integralGain;
+            _derrivativeGain = asPID._derrivativeGain;
+        }
+        else
+        {
+            throw new InvalidOperationException();
+        }
     }
 
     public void Reset()

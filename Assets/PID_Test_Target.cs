@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-class PID_Test_Target : MonoBehaviour
+public class PID_Test_Target : MonoBehaviour
 {
 
     public float Speed = 2.5f;

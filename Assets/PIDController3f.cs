@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using PIDTuner;
 using Unity.Mathematics;
 using UnityEngine;
 
 
-public class PIDController3f
+public class PIDController3f : TuneableController
 {
     private float3 _proportionalGain;
     private float3 _integralGain;
@@ -49,9 +50,42 @@ public class PIDController3f
         var d = _derrivativeGain * delta / Time.fixedDeltaTime;
 
         //TODO:Some better debug system than this nightmare, graphs ??? draw to inspector
-        Debug.Log($"proportional:{p}    intergral:{i}    derrivative:{d}");
+        //Debug.Log($"proportional:{p}    intergral:{i}    derrivative:{d}");
 
         var value = p + i + d;
         return math.clamp(value, _minValue, _maxValue);
+    }
+
+    public TuneableController DeepCopy()
+    {
+        return new PIDController3f(_proportionalGain, _integralGain, _derrivativeGain);
+
+    }
+
+    public void CopyFrom(TuneableController other)
+    {
+        if(other is PIDController3f as3f)
+        {
+            _proportionalGain = as3f._proportionalGain;
+            _integralGain = as3f._integralGain;
+            _derrivativeGain = as3f._derrivativeGain;
+        }
+        else
+        {
+            throw new InvalidOperationException();
+        }
+    }
+
+    public void Reset()
+    {
+        _processLast = 0.0f;
+        _integratlHistory = 0.0f;
+    }
+
+    public void Mutate(MutationArguments mutation)
+    {
+        mutation.Mutate(ref _proportionalGain, new float3(-1.0f), new float3(1.0f));
+        mutation.Mutate(ref _integralGain, new float3(-1.0f), new float3(1.0f));
+        mutation.Mutate(ref _derrivativeGain, new float3(-1.0f), new float3(1.0f));
     }
 }
