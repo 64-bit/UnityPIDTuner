@@ -47,6 +47,7 @@ namespace PIDTuner
 
         public void AdvanceGeneration()//This assumes that the score has been updated externally from this process
         {
+            UnityEngine.Random.InitState((int)Time.realtimeSinceStartup);
             //Sort list by score and take top x
             var newGenerationParents = 
                 _currentPopulation.OrderByDescending((x) => x.CurrentScore)

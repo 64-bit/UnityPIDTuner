@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Unity.Mathematics;
+using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace PIDTuner
 {
@@ -40,11 +42,21 @@ namespace PIDTuner
 
         //Helper methods to mutate specific varible types
 
+        private float GetGaussian(float mean = 0.0f, float stDev = 0.33f)
+        {
+            float u1 = 1.0f - Random.value; //uniform(0,1] random doubles
+            float u2 = 1.0f - Random.value;
+            float randStdNormal = Mathf.Sqrt(-2.0f * Mathf.Log(u1)) *
+                                   Mathf.Sin(2.0f * Mathf.PI * u2); //random normal(0,1)
+            float randNormal =
+                mean + stDev * randStdNormal; //random normal(mean,stdDev^2)
+            return randNormal;
+        }
+
         public virtual void Mutate(ref float current, float min = -1.0f, float max = 1.0f)
         {
             //TODO:Write something sane, like moving the vale by a normal distribution ammount
-            float move = 0.05f * (max - min);
-            move *= UnityEngine.Random.Range(-1.0f, 1.0f);
+            float move = GetGaussian() * (max - min);
             current = math.clamp(current + move, min, max);                           
         }
 
@@ -52,9 +64,7 @@ namespace PIDTuner
         {
             for (var i = 0; i < 3; i++)
             {
-                float move = 0.05f * (max[i] - min[i]);
-                move *= UnityEngine.Random.Range(-1.0f, 1.0f);
-
+                float move = GetGaussian() * (max[i] - min[i]);
                 current[i] = math.clamp(current[i] + move, min[i], max[i]);
             }
         }
@@ -63,9 +73,7 @@ namespace PIDTuner
         {
             for (var i = 0; i < 4; i++)
             {
-                float move = 0.05f * (max[i] - min[i]);
-                move *= UnityEngine.Random.Range(-1.0f, 1.0f);
-
+                float move = GetGaussian() * (max[i] - min[i]);
                 current[i] = math.clamp(current[i] + move, min[i], max[i]);
             }
         }

@@ -16,6 +16,7 @@ namespace Assets
 
         public int Generations = 10;
         public int Population = 100;
+        public int KeepTop = 5;
 
         private GeneticTuner _geneticTuner;
 
@@ -47,7 +48,7 @@ namespace Assets
             _geneticTuner = new GeneticTuner(requirments, new MutationArguments(),new GeneticTuner.GenerationArguments()
             {
                 GenerationSize = Population,
-                KeepTopCount = 10,
+                KeepTopCount = KeepTop,
                 KeepExactParents = true
             });
         }
@@ -63,11 +64,14 @@ namespace Assets
             }
 
             //Print result
+
+            var bestController = _geneticTuner.CurrentPopulation.OrderByDescending((x) => x.CurrentScore).First();
+            Debug.Log($"Best Controller Args:{bestController.ControllerGeneticData[0]}");
         }
 
         private IEnumerator ProcessGeneration()
         {
-            int xSize = (int)Math.Sqrt(Population) + 1;
+            int xSize = (int)Math.Sqrt(Population);
 
             var finishedCount = new IntContainer();
 

@@ -19,6 +19,9 @@ public class PIDController3f : TuneableController
     private float3 _minValue = new float3(-1.0f);
     private float3 _maxValue = new float3(1.0f);
 
+    private float3 _maxGain = new float3(2.0f);
+    private float3 _minGain = new float3(-2.0f);
+
     private float3 _processLast;
 
     public PIDController3f(float3 proportionalGain, float3 intergralGaion, float3 derrivativeGain)
@@ -84,8 +87,14 @@ public class PIDController3f : TuneableController
 
     public void Mutate(MutationArguments mutation)
     {
-        mutation.Mutate(ref _proportionalGain, new float3(-1.0f), new float3(1.0f));
-        mutation.Mutate(ref _integralGain, new float3(-1.0f), new float3(1.0f));
-        mutation.Mutate(ref _derrivativeGain, new float3(-1.0f), new float3(1.0f));
+        mutation.Mutate(ref _proportionalGain, new float3(_minGain), new float3(_maxGain));
+        mutation.Mutate(ref _integralGain, new float3(_minGain), new float3(_maxGain));
+        mutation.Mutate(ref _derrivativeGain, new float3(_minGain), new float3(_maxGain));
+    }
+
+    public override string ToString()
+    {
+        return
+            $"PIDController3f Arguments:\nProportional Gain:{_proportionalGain}\nIntergral Gain:{_integralGain}\n Derrivative Gain:{_derrivativeGain}";
     }
 }
